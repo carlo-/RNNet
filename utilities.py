@@ -77,3 +77,12 @@ def compare_grads(lhs: Theta, rhs: Theta, m, K):
     for k in lhs:
         errors_v[k] = relative_err(lhs[k], rhs[k])
     return errors
+
+
+def simple_smooth_1d(x, alpha):
+    assert len(x.shape) == 1, 'Function only works with 1D arrays'
+    smooth_x = np.zeros(x.shape[0])
+    smooth_x[0] = x[0]
+    for i in range(1, smooth_x.size):
+        smooth_x[i] = alpha * smooth_x[i-1] + (1.0 - alpha) * x[i]
+    return smooth_x
