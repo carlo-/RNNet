@@ -122,6 +122,10 @@ class RNNet:
         with open(filepath, 'wb') as f:
             pickle.dump(self, f)
 
+    def clear_grads(self):
+        self.grads = self.Theta.zeros(self.m, self.K)
+        self.momentum = self.Theta.zeros(self.m, self.K)
+
 
     # ==================== FW/BW passes ====================
 
@@ -192,10 +196,19 @@ class RNNet:
 
     # ==================== Loss, Softmax, Utilities ====================
 
-    def synthesize(self, n, char_to_one_hot, index_to_char, h0=None, x0="."):
+    def synthesize(self, n, char_to_one_hot, index_to_char, h0=None, x0=None, separator=None, stop_at_separator=True, random_state=None):
+
+        if random_state is None:
+            random_state = np.random
 
         if h0 is None:
             h0 = np.zeros((self.m, 1))
+
+        if x0 is None:
+            if separator is None:
+                x0 = '.'
+            else:
+                x0 = separator
 
         c_prev = x0
         h_prev = h0
@@ -203,11 +216,19 @@ class RNNet:
 
         for i in range(n):
 
+            if c_prev == separator and i > 0:
+                if stop_at_separator:
+                    break
+                else:
+                    sequence.append('\n\n')
+                    c_prev = x0
+                    h_prev = h0
+
             X = char_to_one_hot[c_prev].reshape(1,-1)
             _, H, _, P = self._forward(X, h_prev)
 
             cp = np.cumsum(P)
-            r = np.random.rand()
+            r = random_state.rand()
             indexes = np.where(cp > r)
             index_next = indexes[0][0]
 
@@ -253,6 +274,7 @@ class RNNet:
         m = self.m
         char_to_one_hot = dataset.char_to_one_hot
         index_to_char = dataset.index_to_char
+        separator = dataset.separator
         text_len = len(dataset.text)
 
         max_text_index = text_len - seq_len
@@ -264,19 +286,31 @@ class RNNet:
         smooth_losses_i = []
         synthesized_text_i = []
 
+        h_prev = np.zeros((m, 1))
+
         # For each epoch
         for e in range(1, epochs + 1):
 
             tick_e = timer()
-            h_prev = np.zeros((m, 1))
+            h_prev *= 0.0
+            i = 0
 
             # For each sequence
-            for i in range(0, max_text_index, seq_len):
+            while i < max_text_index:
+
+                X, Y, sep_index = dataset.get_labeled_data(i, seq_len)
+                x0 = dataset.text[i]
+
+                if sep_index is not None:
+                    len_til_separator = i-sep_index
+                    if len_til_separator == 0:
+                        h_prev *= 0.0
+                        i += 1
+                        continue
+                    X = X[:len_til_separator]
+                    Y = Y[:len_til_separator]
 
                 step_num += 1
-
-                X, Y = dataset.get_labeled_data(i, seq_len)
-                x0 = dataset.text[i]
 
                 A, H, O, P = self._forward(X, h_prev)
                 self._backward(X, Y, h_prev, A, H, O, P)
@@ -291,7 +325,7 @@ class RNNet:
                     smooth_loss = 0.999 * smooth_loss + 0.001 * loss
 
                 if step_num % record_interval == 0 or step_num == 1:
-                    synt = self.synthesize(test_len, char_to_one_hot, index_to_char, h_prev, x0)
+                    synt = self.synthesize(test_len, char_to_one_hot, index_to_char, h_prev, x0, separator)
                     smooth_losses_i.append(smooth_loss)
                     synthesized_text_i.append(synt)
                     if not silent:
@@ -299,7 +333,12 @@ class RNNet:
                         print(f'===> Epoch {e}/{epochs}, step {step_num}/{total_steps}, smooth_loss: {smooth_loss}, max_grad_mag: {max_grad_mag}')
                         print(synt, '\n')
 
-                h_prev = H[-1]
+                if sep_index is not None:
+                    h_prev *= 0.0
+                    i = sep_index+1
+                else:
+                    h_prev = H[-1]
+                    i += seq_len
 
             smooth_losses_e.append(smooth_loss)
 

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import dataset as dt
 from os.path import exists
 from model import RNNet
-from utilities import compute_grads_numerical, compare_grads, unpickle, pickle, simple_smooth_1d
+from utilities import compute_grads_numerical, compare_grads, unpickle, pickle, eprint, simple_smooth_1d
 
 GOBLET_RESULTS_PATH = '../goblet_results.pkl'
 
@@ -22,7 +22,7 @@ def check_gradients():
     seq_len = 25
     m = 5
 
-    X, Y = book.get_labeled_data(0, seq_len)
+    X, Y, _ = book.get_labeled_data(0, seq_len)
     h0 = np.zeros((m, 1))
 
     np.random.seed(42)
@@ -125,10 +125,14 @@ def print_evolution(res, interval, limit=None):
 
 
 def synthesize_with_best_model():
-    book = dt.load_goblet_of_fire()
-    net = RNNet.import_model('../trained_models/2018-06-12-2205-e10.pkl')
-    np.random.seed(50)
-    print(net.synthesize(1000, book.char_to_one_hot, book.index_to_char))
+    model_path = '../trained_models/2018-06-12-2205-e10.pkl'
+    if exists(model_path):
+        book = dt.load_goblet_of_fire()
+        net = RNNet.import_model(model_path)
+        np.random.seed(50)
+        print(net.synthesize(1000, book.char_to_one_hot, book.index_to_char))
+    else:
+        eprint('Best trained model found!')
 
 
 def main():

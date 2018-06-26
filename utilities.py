@@ -7,8 +7,13 @@
 #
 
 import numpy as np
+from sys import stderr
 from model import RNNet
 Theta = RNNet.Theta
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=stderr, **kwargs)
 
 
 def unpickle(filename):
