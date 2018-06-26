@@ -1,5 +1,5 @@
 # RNNet
-Python implementation of a recurrent neural network.
+Python implementation of a recurrent neural network for text synthesis.
 
 Training is performed exclusively on CPU, and the gradient descent can work either with AdaGrad or with RMSProp.\
 The source includes examples trained with [J.K. Rowling's Goblet of Fire](https://web.cs.hacettepe.edu.tr/~aykut/classes/spring2018/cmp784/goblet_book.txt) and [~32k tweets from @realDonaldTrump](https://github.com/bpb27/trump_tweet_data_archive).
