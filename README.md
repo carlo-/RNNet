@@ -8,7 +8,7 @@ The source includes examples trained with [J.K. Rowling's Goblet of Fire](https:
 - **Initialization:** He
 - **Activation function:** Hyperbolic tangent
 - **Cost function:** Sum of cross-entropy losses
-- **Output:** Softmax of the scores at the final layer
+- **Output:** Softmax
 - **Optimizer:** AdaGrad or RMSProp (or custom)
 
 ## Network initialization
